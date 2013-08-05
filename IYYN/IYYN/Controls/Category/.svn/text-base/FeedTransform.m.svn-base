@@ -1,0 +1,282 @@
+//
+//  FeedTransform.m
+//  FetionPlus
+//
+//  Created by 晓磊 裴 on 11-11-18.
+//  Copyright (c) 2011年 Feinno Tech. All rights reserved.
+//
+
+#import "FeedTransform.h"
+#import "ASIHTTPRequest.h"
+//#import "ConstantDefine.h"
+
+@implementation FeedTransform
+
+#pragma mark - time transform
+
++(NSString*)timestampWithRealDate:(NSDate *)dt {
+    
+//    NSString * ttime = nil;
+    NSDateFormatter * dateformatter = [[[NSDateFormatter alloc] init] autorelease];
+    [dateformatter setTimeStyle:NSDateFormatterMediumStyle];
+//    [dateformatter setDateFormat:@"yyyy'-'MM'-'dd' 'HH':'mm':'ss' '"];
+    [dateformatter setDateFormat:@"HH':'mm'  'MM'-'dd'"];
+//    [dateformatter setLocale:[NSLocale currentLocale]];
+    
+//    int distance = abs([dt timeIntervalSinceNow]);
+//    
+//    if (distance < 60) {
+//        ttime = [NSString stringWithFormat:@"%d%@",distance,@"秒前"];//@"刚才";
+//    }
+//    else if (distance < 60*60) {
+//        distance = distance/60;
+//        ttime = [NSString stringWithFormat:@"%d%@",distance,@"分钟前"];
+//    }
+//    else if (distance < 60*60*24) {
+//        distance = distance/60/60;
+//        ttime = [NSString stringWithFormat:@"%d%@",distance,@"小时前"];
+//    }
+//    else {
+//        // 精确到分钟
+//        ttime = [dateformatter stringFromDate:dt];
+//    }
+    
+    return [dateformatter stringFromDate:dt];//ttime;
+}
+
++(NSString*)timestampWithDate:(NSString *)tstr {
+    
+    NSString * ttime = nil;
+    
+    NSDateFormatter * dateformatter = [[[NSDateFormatter alloc] init] autorelease];
+    [dateformatter setTimeStyle:NSDateFormatterMediumStyle];
+    [dateformatter setDateFormat:@"yyyy'-'MM'-'dd' 'HH':'mm':'ss' '"];
+//    [dateformatter setDateFormat:@"HH':'mm'  'MM'-'dd'"];
+//    [dateformatter setLocale:[NSLocale currentLocale]];
+    // 距当前时间差 second
+    int distance = abs([[dateformatter dateFromString:tstr] timeIntervalSinceNow]);
+    
+    if (distance < 60) {
+        ttime = @"刚才";
+    }
+    else if (distance < 60*60) {
+        distance = distance/60;
+        ttime = [NSString stringWithFormat:@"%d%@",distance,@"分钟前"];
+    }
+    else if (distance < 60*60*24) {
+        distance = distance/60/60;
+        ttime = [NSString stringWithFormat:@"%d%@",distance,@"小时前"];
+    }
+    else {
+        
+        ttime =
+            // 相对时间，时间是过去，用负值
+//            [self timestampWithRealDate:[NSDate dateWithTimeIntervalSinceNow:-distance]];
+            // 绝对时间，现在即未来，用正值
+            [self timestampWithRealDate:[NSDate dateWithTimeIntervalSince1970:abs([[dateformatter dateFromString:tstr] timeIntervalSince1970])]];
+    }
+    
+    return ttime;
+}
+
++(NSString *)NowDateAsString {
+    
+    NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
+    [dateFormatter setTimeStyle:NSDateFormatterMediumStyle];
+    [dateFormatter setDateFormat:@"yyyy'-'MM'-'dd' 'HH':'mm':'ss' '"];
+    [dateFormatter setLocale:[NSLocale currentLocale]];
+    
+    NSString *now = [dateFormatter stringFromDate:[NSDate date]];
+    
+    return now;
+}
+
+#pragma mark - image transform
+
+-(id)init {
+
+    self = [super init];
+    if (self) {
+        
+        fileManager = [[NSFileManager alloc] init];
+        NSArray * cache = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+        NSString * cachePath = [cache objectAtIndex:0];
+        cachepath = [cachePath stringByAppendingString:@"/"];
+    }
+    
+    return self;
+}
+
+-(UIImage*)getImageWithURLPathU:(NSString *)upath {
+    
+//    NSArray * cache = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+//    NSString * cachePath = [cache objectAtIndex:0];
+//    NSString * filepath = [cachePath stringByAppendingString:@"/"];
+    NSString * filepath = [cachepath stringByAppendingFormat:@"%d.png",[upath hash]];
+    
+    FSLOG(@"filepath: %@",filepath);
+    
+    BOOL success;
+    success = [fileManager fileExistsAtPath:filepath];
+    if (success) {
+        
+        return [UIImage imageWithContentsOfFile:filepath];
+    }
+    else {
+        
+        NSURL *url = [NSURL URLWithString:upath];
+        __block ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+        request.timeOutSeconds = 20.0f;
+        __block UIImage * image = nil;
+        
+        [request setCompletionBlock:^{
+            
+            NSData *rData = [request responseData];
+            
+            image = [UIImage imageWithData:rData];
+            
+            if (image)
+                [UIImageJPEGRepresentation(image, 0.4f) writeToFile:filepath atomically:YES];
+            
+        }];
+        
+        [request setFailedBlock:^{
+            NSError *error = [request error];
+            FSLOG(@"error code:%d, domain:%@",error.code,error.domain);
+        }];
+        
+        [request startAsynchronous];
+        
+        if (image)
+            return image;
+        else 
+            return [UIImage imageNamed:@"FeedCell_photo.png"/*@"FeedCell_head.png"*/];
+    }
+}
+
++(UIImage*)getImageWithURLPath:(NSString *)upath {
+    
+    NSFileManager * fileManager = [NSFileManager defaultManager];
+    NSArray * cache = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    NSString * cachePath = [cache objectAtIndex:0];
+    NSString * filepath = [cachePath stringByAppendingString:@"/"];
+    filepath = [filepath stringByAppendingFormat:@"%d.png",[upath hash]];
+    
+    FSLOG(@"filepath: %@",filepath);
+    
+    BOOL success;
+    success = [fileManager fileExistsAtPath:filepath];
+    if (success) {
+        
+        return [UIImage imageWithContentsOfFile:filepath];
+    }
+    else {
+    
+        NSURL *url = [NSURL URLWithString:upath];
+        __block ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+        request.timeOutSeconds = 20.0f;
+        __block UIImage * image = nil;
+        
+        [request setCompletionBlock:^{
+            
+            NSData *rData = [request responseData];
+                        
+            image = [UIImage imageWithData:rData];
+            
+            if (image)
+                [UIImageJPEGRepresentation(image, 0.4f) writeToFile:filepath atomically:YES];
+            
+        }];
+        
+        [request setFailedBlock:^{
+            NSError *error = [request error];
+            FSLOG(@"error code:%d, domain:%@",error.code,error.domain);
+        }];
+        
+        [request startAsynchronous];
+        
+        if (image)
+            return image;
+        else 
+            return [UIImage imageNamed:@"FeedCell_photo.png"/*@"FeedCell_head.png"*/];
+    }
+
+}
+
++(UIImage *)rotateImage:(UIImage *)aImage
+{
+    CGImageRef imgRef = aImage.CGImage;
+    CGFloat width = CGImageGetWidth(imgRef);
+    CGFloat height = CGImageGetHeight(imgRef);
+    CGAffineTransform transform = CGAffineTransformIdentity;
+    CGRect bounds = CGRectMake(0, 0, width, height);
+    CGFloat scaleRatio = 1;
+    CGFloat boundHeight;
+    UIImageOrientation orient = aImage.imageOrientation;
+    switch(orient)
+    {
+        case UIImageOrientationUp: //EXIF = 1
+            transform = CGAffineTransformIdentity;
+            break;
+        case UIImageOrientationUpMirrored: //EXIF = 2
+            transform = CGAffineTransformMakeTranslation(width, 0.0);
+            transform = CGAffineTransformScale(transform, -1.0, 1.0);
+            break;
+        case UIImageOrientationDown: //EXIF = 3
+            transform = CGAffineTransformMakeTranslation(width, height);
+            transform = CGAffineTransformRotate(transform, M_PI);
+            break;
+        case UIImageOrientationDownMirrored: //EXIF = 4
+            transform = CGAffineTransformMakeTranslation(0.0, height);
+            transform = CGAffineTransformScale(transform, 1.0, -1.0);
+            break;
+        case UIImageOrientationLeftMirrored: //EXIF = 5
+            boundHeight = bounds.size.height;
+            bounds.size.height = bounds.size.width;
+            bounds.size.width = boundHeight;
+            transform = CGAffineTransformMakeTranslation(height, width);
+            transform = CGAffineTransformScale(transform, -1.0, 1.0);
+            transform = CGAffineTransformRotate(transform, 3.0 * M_PI / 2.0);
+            break;
+        case UIImageOrientationLeft: //EXIF = 6
+            boundHeight = bounds.size.height;
+            bounds.size.height = bounds.size.width;
+            bounds.size.width = boundHeight;
+            transform = CGAffineTransformMakeTranslation(0.0, width);
+            transform = CGAffineTransformRotate(transform, 3.0 * M_PI / 2.0);
+            break;
+        case UIImageOrientationRightMirrored: //EXIF = 7
+            boundHeight = bounds.size.height;
+            bounds.size.height = bounds.size.width;
+            bounds.size.width = boundHeight;
+            transform = CGAffineTransformMakeScale(-1.0, 1.0);
+            transform = CGAffineTransformRotate(transform, M_PI / 2.0);
+            break;
+        case UIImageOrientationRight: //EXIF = 8
+            boundHeight = bounds.size.height;
+            bounds.size.height = bounds.size.width;
+            bounds.size.width = boundHeight;
+            transform = CGAffineTransformMakeTranslation(height, 0.0);
+            transform = CGAffineTransformRotate(transform, M_PI / 2.0);
+            break;
+        default:
+            [NSException raise:NSInternalInconsistencyException format:@"Invalid image orientation"];
+    }
+    UIGraphicsBeginImageContext(bounds.size);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    if (orient == UIImageOrientationRight || orient == UIImageOrientationLeft) {
+        CGContextScaleCTM(context, -scaleRatio, scaleRatio);
+        CGContextTranslateCTM(context, -height, 0);
+    }
+    else {
+        CGContextScaleCTM(context, scaleRatio, -scaleRatio);
+        CGContextTranslateCTM(context, 0, -height);
+    }
+    CGContextConcatCTM(context, transform);
+    CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, width, height), imgRef);
+    UIImage *imageCopy = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return imageCopy;
+}
+
+@end

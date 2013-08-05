@@ -1,0 +1,212 @@
+//
+//  UIViewController+StackAnimation.m
+//  FetionSchool
+//
+//  Created by Bruce Pei on 12-9-11.
+//
+//
+
+#import "UIViewController+StackAnimation.h"
+#import "ConstantDefine.h"
+#import "OtherHomeViewController.h"
+
+BOOL isStack = NO;
+
+@implementation UIViewController (StackAnimation)
+
+#define SCALEFACTOR 0.8f
+#define DURATIONTIME 0.3f
+//#define BLACK_ALPHA_VALUE 0.8f
+
+- (void)showStackViewController:(UIViewController *)viewController {
+    
+    if (isStack) {
+        return;
+    }
+    
+    isStack = YES;
+    FSLOG(@"create appDelegate Begin");
+    
+    
+    int offset = 20;
+    if (viewController.view.size.height == SCREEN_HEIGHT) {
+        offset = 0;
+    }
+    
+    viewController.view.frame = CGRectMake(viewController.view.size.width, offset, 320, viewController.view.size.height);
+    [FASHION_CAMPUS_DELEGATE.window addSubview:viewController.view];
+    
+//    [self performSelector:@selector(performShowDelay:) withObject:viewController afterDelay:DURATIONTIME];
+//    
+//    [UIView beginAnimations:nil context:nil];
+//    [UIView setAnimationCurve:UIViewAnimationCurveLinear];
+//    [UIView setAnimationDuration:DURATIONTIME];
+//    if ([FASHION_CAMPUS_DELEGATE.viewControllers count]>0)
+//        self.view.transform = CGAffineTransformMakeScale(SCALEFACTOR, SCALEFACTOR);
+//    else
+//        FASHION_CAMPUS_DELEGATE.rootView.view.transform = CGAffineTransformMakeScale(SCALEFACTOR, SCALEFACTOR);
+//    
+//    viewController.view.frame = CGRectMake(0, offset, 320, viewController.view.size.height);
+//    [UIView commitAnimations];
+    
+    
+    [UIView animateWithDuration:DURATIONTIME
+                          delay:0.0
+                        options:UIViewAnimationOptionCurveEaseInOut
+                     animations:^{
+        
+        if ([FASHION_CAMPUS_DELEGATE.viewControllers count]>0)
+            self.view.transform = CGAffineTransformMakeScale(SCALEFACTOR, SCALEFACTOR);
+        else
+            FASHION_CAMPUS_DELEGATE.rootView.view.transform = CGAffineTransformMakeScale(SCALEFACTOR, SCALEFACTOR);
+                         
+        viewController.view.frame = CGRectMake(0, offset, 320, viewController.view.size.height);
+        
+        } completion:^(BOOL finished){
+                         
+                         if (finished) {
+                             
+                             FASHION_CAMPUS_DELEGATE.window.rootViewController = viewController;
+                             // 通知View
+                             if ([viewController isKindOfClass:[UINavigationController class]])
+                                 FASHION_CAMPUS_DELEGATE.rootView.loadingToast.view = ((UINavigationController *)viewController).visibleViewController.view;
+                             else
+                                 FASHION_CAMPUS_DELEGATE.rootView.loadingToast.view = viewController.view;
+                             
+                             // previewcontroller 加入到 viewControllers
+                             if (FASHION_CAMPUS_DELEGATE.viewControllers.count > 0) {
+                                 [self.view removeFromSuperview];
+                                 [FASHION_CAMPUS_DELEGATE.viewControllers addObject:self];
+                             }
+                             else {
+                                 [FASHION_CAMPUS_DELEGATE.rootView.view removeFromSuperview];
+                                 [FASHION_CAMPUS_DELEGATE.viewControllers addObject:FASHION_CAMPUS_DELEGATE.rootView];
+                             }
+                             
+                             isStack = NO;
+                         }
+                     }];
+    
+    FSLOG(@"Animation End");
+}
+
+-(void)performShowDelay:(UIViewController *)viewController {
+
+    FASHION_CAMPUS_DELEGATE.window.rootViewController = viewController;
+    
+    // previewcontroller 加入到 viewControllers
+    if (FASHION_CAMPUS_DELEGATE.viewControllers.count > 0) {
+        [self.view removeFromSuperview];
+        [FASHION_CAMPUS_DELEGATE.viewControllers addObject:self];
+    }
+    else {
+        [FASHION_CAMPUS_DELEGATE.rootView.view removeFromSuperview];
+        [FASHION_CAMPUS_DELEGATE.viewControllers addObject:FASHION_CAMPUS_DELEGATE.rootView];
+    }
+    
+    isStack = NO;
+    
+}
+
+- (void)dismissStackViewController {
+    
+    FSLOG(@"create appDelegate Begin");
+    
+    if (FASHION_CAMPUS_DELEGATE.viewControllers.count == 0) {
+        
+        FSLOG(@"no show stack, no dismiss stack");
+        
+        return;
+    }
+    
+    // 提取 previewcontroller
+    UIViewController *viewController = [FASHION_CAMPUS_DELEGATE.viewControllers lastObject];
+    viewController.view.transform = CGAffineTransformMakeScale(SCALEFACTOR, SCALEFACTOR);
+    
+    [FASHION_CAMPUS_DELEGATE.window insertSubview:viewController.view belowSubview:self.view];
+    
+    [UIView animateWithDuration:DURATIONTIME
+                          delay:0.0
+                        options:UIViewAnimationOptionCurveEaseIn
+                     animations:^{
+        
+        self.view.frame = CGRectMake(320, self.view.origin.y, 320, self.view.size.height);
+                         
+         // 客态主页，向下20个点
+         if ([viewController isKindOfClass:[UINavigationController class]]) {
+             
+             CGRect tempR = viewController.view.frame;
+             FSLOG(@"origin x=%f,y=%f",tempR.origin.x,tempR.origin.y);
+             if (tempR.origin.y < 60.0f)
+                 tempR.origin = CGPointMake(tempR.origin.x, tempR.origin.y+20);
+             viewController.view.frame = tempR;
+         }
+        
+         viewController.view.transform = CGAffineTransformMakeScale(1.0, 1.0);
+        
+        } completion:^(BOOL finished){
+                         
+             if (finished) {
+                 
+                 FASHION_CAMPUS_DELEGATE.window.rootViewController = viewController;
+                 // 通知View
+                 if ([viewController isKindOfClass:[UINavigationController class]])
+                     FASHION_CAMPUS_DELEGATE.rootView.loadingToast.view = ((UINavigationController *)viewController).visibleViewController.view;
+                 else
+                     FASHION_CAMPUS_DELEGATE.rootView.loadingToast.view = viewController.view;
+                 
+                 [self.view removeFromSuperview];
+                 // 清除 previewcontroller
+                 [FASHION_CAMPUS_DELEGATE.viewControllers removeLastObject];
+             }
+         }];
+    
+    FSLOG(@"Animation End");
+}
+
+-(void)performDismissDelay:(UIViewController*)viewController {
+    FASHION_CAMPUS_DELEGATE.window.rootViewController = viewController;
+    [self.view removeFromSuperview];
+    // 清除 previewcontroller
+    [FASHION_CAMPUS_DELEGATE.viewControllers removeLastObject];
+}
+
+- (void)dismissStackViewController:(UIViewController *)viewController {
+    
+    FSLOG(@"create appDelegate Begin");
+    
+    viewController.view.transform = CGAffineTransformMakeScale(SCALEFACTOR, SCALEFACTOR);
+    
+    
+    int offset = 20;
+    if (viewController.view.size.height == [UIScreen mainScreen].bounds.size.height) {
+        offset = 0;
+    }
+    
+    
+    [FASHION_CAMPUS_DELEGATE.window insertSubview:viewController.view belowSubview:self.view];
+    
+    [UIView animateWithDuration:DURATIONTIME delay:0.0 options:UIViewAnimationCurveEaseInOut animations:^{
+        
+        self.view.frame = CGRectMake(320, offset, 320/*controllerScreenshot.size.width*/, viewController.view.size.height);
+        
+    } completion:nil];
+    
+    [UIView animateWithDuration:DURATIONTIME delay:0.0 options:UIViewAnimationCurveEaseInOut animations:^{
+        
+        viewController.view.transform = CGAffineTransformMakeScale(1.0, 1.0);
+        
+        
+    } completion:^(BOOL finished){
+        
+        FASHION_CAMPUS_DELEGATE.window.rootViewController = viewController;
+        [FASHION_CAMPUS_DELEGATE.viewControllers removeLastObject];
+        [FASHION_CAMPUS_DELEGATE.viewControllers addObject:FASHION_CAMPUS_DELEGATE.rootView];
+    }];
+    
+    
+    
+    FSLOG(@"Animation End");
+}
+
+@end

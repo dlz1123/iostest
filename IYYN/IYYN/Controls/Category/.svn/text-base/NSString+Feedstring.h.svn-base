@@ -1,0 +1,19 @@
+//
+//  NSString+Feedstring.h
+//  FetionPlus
+//
+//  Created by 晓磊 裴 on 11-11-17.
+//  Copyright (c) 2011年 Feinno Tech. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NSString (Feedstring)
+// 解析HTML得到完整的字符串
+-(NSString *)regexString;
+// 解析HTML数据得到 高亮数组
+-(NSMutableArray *)urlStrArray;
+-(NSString *)clearString;
+//--Clear duplication str, and replace it to once! -- hequn
+-(NSString *)clearDuplicateStr:(NSString*)dStr;
+@end

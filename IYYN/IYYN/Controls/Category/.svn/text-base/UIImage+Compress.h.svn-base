@@ -1,0 +1,20 @@
+//
+//  UIImage+Compress.h
+//  Fetion
+//
+//  Created by Hequn on 12-6-4.
+//  Copyright (c) 2012年 Feinno.com. All rights reserved.
+//
+
+
+
+@interface UIImage (Compress)
+- (UIImage *)compressedImage;  
+
+- (CGFloat)compressionQuality;  
+
+- (NSData *)compressedData;  
+
+- (NSData *)compressedData:(CGFloat)compressionQuality;  
+
+@end

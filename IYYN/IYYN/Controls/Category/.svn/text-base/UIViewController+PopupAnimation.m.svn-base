@@ -1,0 +1,301 @@
+//
+//  UIViewController+PopupAnimation.m
+//  FetionSchool
+//
+//  Created by 裴晓磊 on 12-7-5.
+//  Copyright (c) 2012年 __MyCompanyName__. All rights reserved.
+//
+
+#import "UIViewController+PopupAnimation.h"
+#import <QuartzCore/QuartzCore.h>
+#import "PopupBackgroundView.h"
+//#import "ConstantDefine.h"
+
+#define kSourceViewTag 23941
+#define kPopupViewTag 23942
+#define kBackgroundViewTag 23943
+#define kOverlayViewTag 23945
+
+@interface UIViewController (PopupAnimatePrivate)
+-(UIView *)topView;
+-(void)presentPopupView:(UIView*)popupView;
+@end
+
+@implementation UIViewController (PopupAnimation)
+
+-(void)presentPopupViewController:(UIViewController *)viewController animationType:(PopupViewAnimation)animationType
+{
+    [self presentPopupView:viewController.view animationType:animationType];
+}
+
+- (void)dismissPopupViewControllerWithAnimationType:(PopupViewAnimation)animationType
+{
+    UIView *sourceView = [self topView];
+    UIView *popupView = [sourceView viewWithTag:kPopupViewTag];
+    UIView *overlayView = [sourceView viewWithTag:kOverlayViewTag];
+    
+    if(animationType == PopupViewAnimationSlideBottomTop || animationType == PopupViewAnimationSlideBottomBottom || animationType == PopupViewAnimationSlideRightLeft || animationType == PopupViewAnimationSlideTopTop || animationType == PopupViewAnimationSlideRightRight) {
+        [self slideViewOut:popupView sourceView:sourceView overlayView:overlayView withAnimationType:animationType];
+    } else {
+        [self fadeViewOut:popupView sourceView:sourceView overlayView:overlayView];
+    }
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+#pragma mark View Handling
+
+- (void)presentPopupView:(UIView*)popupView animationType:(PopupViewAnimation)animationType
+{
+    UIView *sourceView = [self topView];
+    sourceView.tag = kSourceViewTag;
+    popupView.tag = kPopupViewTag;
+    
+    // check if source view controller is not in destination
+    if ([sourceView.subviews containsObject:popupView]) return;
+    
+    // customize popupView
+    popupView.layer.shadowPath = [UIBezierPath bezierPathWithRect:popupView.bounds].CGPath;
+    popupView.layer.masksToBounds = NO;
+    popupView.layer.shadowOffset = CGSizeMake(5, 5);
+    popupView.layer.shadowRadius = 5;
+    popupView.layer.shadowOpacity = 0.5;
+    
+    // Add semi overlay
+    UIView *overlayView = [[UIView alloc] initWithFrame:sourceView.bounds];
+    overlayView.tag = kOverlayViewTag;
+    overlayView.backgroundColor = [UIColor clearColor];
+    
+// BackgroundView
+    PopupBackgroundView *backgroundView = [[PopupBackgroundView alloc] initWithFrame:sourceView.bounds];
+    backgroundView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    backgroundView.tag = kBackgroundViewTag;
+    backgroundView.backgroundColor = [UIColor clearColor];
+    backgroundView.alpha = 0.0f;
+    [overlayView addSubview:backgroundView];
+    
+    // Make the Background Clickable
+    UIButton * dismissButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    dismissButton.backgroundColor = [UIColor clearColor];
+    dismissButton.frame = sourceView.bounds;
+    [overlayView addSubview:dismissButton];
+    
+    popupView.alpha = 0.0f;
+    [overlayView addSubview:popupView];
+    [sourceView addSubview:overlayView];
+    
+    if(animationType == PopupViewAnimationSlideBottomTop) {
+        [dismissButton addTarget:self action:@selector(dismissPopupViewControllerWithAnimationTypeSlideBottomTop) forControlEvents:UIControlEventTouchUpInside];
+        [self slideViewIn:popupView sourceView:sourceView overlayView:overlayView withAnimationType:animationType];
+    } else if (animationType == PopupViewAnimationSlideTopTop) {
+        [dismissButton addTarget:self action:@selector(dismissPopupviewcontrollerWithAnimationTypeSlideTopTop) forControlEvents:UIControlEventTouchUpInside];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:DISMISS_TEXTVIEW_NOTE object:[NSNumber numberWithBool:YES]];
+        
+        [self slideViewIn:popupView sourceView:sourceView overlayView:overlayView withAnimationType:animationType];
+    } else if (animationType == PopupViewAnimationSlideRightLeft) {
+        [dismissButton addTarget:self action:@selector(dismissPopupViewControllerWithAnimationTypeSlideRightLeft) forControlEvents:UIControlEventTouchUpInside];
+        [self slideViewIn:popupView sourceView:sourceView overlayView:overlayView withAnimationType:animationType];
+    }else if (animationType == PopupViewAnimationSlideRightRight) {
+        [dismissButton addTarget:self action:@selector(dismissPopupViewControllerWithAnimationTypeSlideRightRight) forControlEvents:UIControlEventTouchUpInside];
+        [self slideViewIn:popupView sourceView:sourceView overlayView:overlayView withAnimationType:animationType];
+    } else if (animationType == PopupViewAnimationSlideBottomBottom) {
+        [dismissButton addTarget:self action:@selector(dismissPopupViewControllerWithAnimationTypeSlideBottomBottom) forControlEvents:UIControlEventTouchUpInside];
+        [self slideViewIn:popupView sourceView:sourceView overlayView:overlayView withAnimationType:animationType];
+    } else {
+        [dismissButton addTarget:self action:@selector(dismissPopupViewControllerWithAnimationTypeFade) forControlEvents:UIControlEventTouchUpInside];
+        [self fadeViewIn:popupView sourceView:sourceView overlayView:overlayView];
+    }
+    [overlayView release];//----Memory leak----<hequn>--20121109--//
+}
+
+-(UIView*)topView {
+    UIViewController *recentView = self;
+    
+    while (recentView.parentViewController != nil) {
+        recentView = recentView.parentViewController;
+    }
+    return recentView.view;
+}
+
+// TODO: find a better way to do this, thats horrible
+- (void)dismissPopupViewControllerWithAnimationTypeSlideBottomTop
+{
+    [self dismissPopupViewControllerWithAnimationType:PopupViewAnimationSlideBottomTop];
+}
+
+-(void)dismissPopupViewControllerWithAnimationtypeSlideMiddleTop {
+
+    [self dismissPopupViewControllerWithAnimationType:PopupViewAnimationSlideMiddleTop];
+}
+
+-(void)dismissPopupviewcontrollerWithAnimationTypeSlideTopTop {
+
+    [[NSNotificationCenter defaultCenter] postNotificationName:DISMISS_TEXTVIEW_NOTE object:[NSNumber numberWithBool:NO]];
+    
+    [self dismissPopupViewControllerWithAnimationType:PopupViewAnimationSlideTopTop];
+}
+
+- (void)dismissPopupViewControllerWithAnimationTypeSlideBottomBottom
+{
+    [self dismissPopupViewControllerWithAnimationType:PopupViewAnimationSlideBottomBottom];
+}
+
+-(void)dismissPopupViewControllerWithAnimationtypeSlideTopMiddle {
+    
+    [self dismissPopupViewControllerWithAnimationType:PopupViewAnimationSlideTopMiddle];
+}
+
+- (void)dismissPopupViewControllerWithAnimationTypeSlideRightLeft
+{
+    [self dismissPopupViewControllerWithAnimationType:PopupViewAnimationSlideRightLeft];
+}
+
+- (void)dismissPopupViewControllerWithAnimationTypeSlideRightRight
+{
+    [self dismissPopupViewControllerWithAnimationType:PopupViewAnimationSlideRightRight];
+}
+
+- (void)dismissPopupViewControllerWithAnimationTypeFade
+{
+    [self dismissPopupViewControllerWithAnimationType:PopupViewAnimationFade];
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+#pragma mark Animations
+
+#pragma mark --- Slide
+
+- (void)slideViewIn:(UIView*)popupView sourceView:(UIView*)sourceView overlayView:(UIView*)overlayView withAnimationType:(PopupViewAnimation)animationType
+{
+    UIView *backgroundView = [overlayView viewWithTag:kBackgroundViewTag];
+    // Generating Start and Stop Positions
+    CGSize sourceSize = sourceView.bounds.size;
+    CGSize popupSize = popupView.bounds.size;
+    CGRect popupStartRect;
+    if(animationType == PopupViewAnimationSlideBottomTop || animationType == PopupViewAnimationSlideBottomBottom) {
+        popupStartRect = CGRectMake((sourceSize.width - popupSize.width) / 2, 
+                                    sourceSize.height, 
+                                    popupSize.width, 
+                                    popupSize.height);
+    } else if (animationType == PopupViewAnimationSlideTopTop) {
+        popupStartRect = CGRectMake((sourceSize.width - popupSize.width) / 2, 
+                                    -popupSize.height, 
+                                    popupSize.width, 
+                                    popupSize.height);
+    } else {
+        popupStartRect = CGRectMake(sourceSize.width, 
+                                    (sourceSize.height - popupSize.height) / 2,
+                                    popupSize.width, 
+                                    popupSize.height);
+    }
+    
+    CGRect popupEndRect;
+    
+    if (animationType == PopupViewAnimationSlideTopTop) {
+        popupEndRect = CGRectMake((sourceSize.width - popupSize.width) / 2, 
+                                  GAP_Y,
+                                  popupSize.width, 
+                                  popupSize.height);
+    }
+    else {
+        popupEndRect = CGRectMake((sourceSize.width - popupSize.width) / 2, 
+                                         (sourceSize.height - popupSize.height) / 2,
+                                         popupSize.width, 
+                                         popupSize.height);
+    }
+    
+    // Set starting properties
+    popupView.frame = popupStartRect;
+    popupView.alpha = 1.0f;
+    [UIView animateWithDuration:kPopupModalAnimationDuration delay:0.0f options:UIViewAnimationCurveEaseOut animations:^{
+        
+//        if (popupView.tag == 15) {
+//            [[popupView.subviews objectAtIndex:1] becomeFirstResponder];
+//        }
+        
+        backgroundView.alpha = 1.0f;
+        popupView.frame = popupEndRect;
+        
+    } completion:^(BOOL finished) {
+      
+    }];
+}
+
+- (void)slideViewOut:(UIView*)popupView sourceView:(UIView*)sourceView overlayView:(UIView*)overlayView withAnimationType:(PopupViewAnimation)animationType
+{
+    UIView *backgroundView = [overlayView viewWithTag:kBackgroundViewTag];
+    // Generating Start and Stop Positions
+    CGSize sourceSize = sourceView.bounds.size;
+    CGSize popupSize = popupView.bounds.size;
+    CGRect popupEndRect;
+    if(animationType == PopupViewAnimationSlideBottomTop || animationType == PopupViewAnimationSlideTopTop) {
+        popupEndRect = CGRectMake((sourceSize.width - popupSize.width) / 2, 
+                                  -popupSize.height, 
+                                  popupSize.width, 
+                                  popupSize.height);
+    }
+    else if(animationType == PopupViewAnimationSlideRightRight) {
+        popupEndRect = CGRectMake(popupSize.width, 
+                                  popupView.frame.origin.y,
+                                  popupSize.width, 
+                                  popupSize.height);
+    }
+    else {
+        popupEndRect = CGRectMake(-popupSize.width, 
+                                  popupView.frame.origin.y, 
+                                  popupSize.width, 
+                                  popupSize.height);
+    }
+    
+    [UIView animateWithDuration:kPopupModalAnimationDuration delay:0.0f options:UIViewAnimationCurveEaseIn animations:^{
+        popupView.frame = popupEndRect;
+        backgroundView.alpha = 0.0f;
+    } completion:^(BOOL finished) {
+        [popupView removeFromSuperview];
+        [overlayView removeFromSuperview];
+    }];
+}
+
+#pragma mark --- Fade
+
+- (void)fadeViewIn:(UIView*)popupView sourceView:(UIView*)sourceView overlayView:(UIView*)overlayView
+{
+    UIView *backgroundView = [overlayView viewWithTag:kBackgroundViewTag];
+    // Generating Start and Stop Positions
+    CGSize sourceSize = sourceView.bounds.size;
+    CGSize popupSize = popupView.bounds.size;
+    CGRect popupEndRect = CGRectMake((sourceSize.width - popupSize.width) / 2, 
+                                     (sourceSize.height - popupSize.height) / 2,
+                                     popupSize.width, 
+                                     popupSize.height);
+    
+    // Set starting properties
+    popupView.frame = popupEndRect;
+    popupView.alpha = 0.0f;
+    
+    [UIView animateWithDuration:kPopupModalAnimationDuration animations:^{
+        backgroundView.alpha = 0.5f;
+        popupView.alpha = 1.0f;
+    } completion:^(BOOL finished) {
+    }];
+}
+
+- (void)fadeViewOut:(UIView*)popupView sourceView:(UIView*)sourceView overlayView:(UIView*)overlayView
+{
+    UIView *backgroundView = [overlayView viewWithTag:kBackgroundViewTag];
+    [UIView animateWithDuration:kPopupModalAnimationDuration animations:^{
+        backgroundView.alpha = 0.0f;
+        popupView.alpha = 0.0f;
+    } completion:^(BOOL finished) {
+        [popupView removeFromSuperview];
+        [overlayView removeFromSuperview];
+    }];
+}
+
+@end

@@ -1,0 +1,15 @@
+//
+//  UIImage+SuperImage.h
+//  FetionSchool
+//
+//  Created by Bruce Pei on 12-7-23.
+//
+//
+
+#import <UIKit/UIKit.h>
+
+@interface UIImage (SuperImage)
+
++ (UIImage *) makeImage:(UIImage*) backgroundImage subImage:(UIImage *)subImage inRect:(CGRect)subImageRect;
++ (UIImage *) imageFromScreen;
+@end

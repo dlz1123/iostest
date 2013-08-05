@@ -1,0 +1,22 @@
+//
+//  FeedTransform.h
+//  FetionPlus
+//
+//  Created by 晓磊 裴 on 11-11-18.
+//  Copyright (c) 2011年 Feinno Tech. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FeedTransform : NSObject {
+    NSFileManager * fileManager;
+    NSString * cachepath;
+}
++(NSString*)timestampWithRealDate:(NSDate *)dt;
++(NSString*)timestampWithDate:(NSString*)tstr;
++(NSString *)NowDateAsString;
++(UIImage*)getImageWithURLPath:(NSString*)upath;
+-(UIImage*)getImageWithURLPathU:(NSString *)upath;
+// rotate image
++(UIImage *)rotateImage:(UIImage *)aImage;
+@end

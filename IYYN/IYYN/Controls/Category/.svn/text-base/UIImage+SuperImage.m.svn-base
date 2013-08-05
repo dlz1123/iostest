@@ -1,0 +1,79 @@
+//
+//  UIImage+SuperImage.m
+//  FetionSchool
+//
+//  Created by Bruce Pei on 12-7-23.
+//
+//
+
+#import "UIImage+SuperImage.h"
+
+@implementation UIImage (SuperImage)
+
++ (UIImage *) makeImage:(UIImage*) backgroundImage subImage:(UIImage *)subImage inRect:(CGRect)subImageRect
+{
+	CGRect rect = CGRectMake(0, 0, backgroundImage.size.width, backgroundImage.size.height);
+	
+	UIImage *uiImage = nil;
+	if (subImage != nil
+		&& CGRectContainsRect(rect, subImageRect))
+	{ 
+		CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+		CGContextRef context = CGBitmapContextCreate(NULL, backgroundImage.size.width, backgroundImage.size.height, 8, 
+													 backgroundImage.size.width*4, colorSpace, 
+													 kCGImageAlphaPremultipliedLast);
+		CGColorSpaceRelease(colorSpace);
+		if (context!= nil) 
+		{
+			CGContextTranslateCTM(context, 0, backgroundImage.size.height);
+			CGContextScaleCTM(context, 1.0, -1.0);
+			UIGraphicsPushContext(context);
+			CGContextSetAlpha(context,1.0);
+			
+			[backgroundImage drawInRect:rect blendMode:kCGBlendModeNormal alpha:1.0];
+			[subImage drawInRect:subImageRect blendMode:kCGBlendModeNormal alpha:1.0];
+			
+			CGImageRef cgImage = CGBitmapContextCreateImage(context);  
+			uiImage = [[UIImage alloc] initWithCGImage:cgImage];
+			UIGraphicsPopContext();
+			CGContextRelease(context);
+			CGImageRelease(cgImage);
+		}
+	}
+	if (uiImage == nil)
+	{
+		[backgroundImage retain];
+		uiImage = backgroundImage;
+	}
+	//UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil);
+	return [uiImage autorelease];
+}
+
++ (UIImage *) imageFromScreen
+{
+    UIWindow *screenWindow = [[UIApplication sharedApplication] keyWindow];
+    CGFloat scale = [[UIScreen mainScreen] scale];
+    UIGraphicsBeginImageContext(CGSizeMake(screenWindow.frame.size.width*scale, screenWindow.frame.size.height*scale));
+    
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    
+    CGContextScaleCTM(UIGraphicsGetCurrentContext(), scale, scale);
+    // imageWithCGImage:returnImg
+    [screenWindow.layer renderInContext:context];
+    UIImage* theImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    screenWindow.layer.contents = nil;
+    
+    //
+    CGRect frame= [[UIScreen mainScreen] applicationFrame];
+    frame.size.width *= scale;
+    frame.size.height*= scale;
+    frame.origin.y =20*scale;
+    CGImageRef small = CGImageCreateWithImageInRect([theImage CGImage],frame);
+    UIImage * tmp = [UIImage imageWithCGImage:small scale:scale orientation:UIImageOrientationUp];
+    CGImageRelease(small);
+    return tmp;
+    
+}
+
+@end

@@ -1,0 +1,19 @@
+//
+//  UIViewController+StackAnimation.h
+//  FetionSchool
+//
+//  Created by Bruce Pei on 12-9-11.
+//
+//
+
+#import <UIKit/UIKit.h>
+
+#define kSemiModalAnimationDuration   0.5
+
+@interface UIViewController (StackAnimation)
+
+- (void)showStackViewController:(UIViewController *)viewController;
+- (void)dismissStackViewController;
+- (void)dismissStackViewController:(UIViewController *)viewController;
+
+@end

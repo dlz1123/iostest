@@ -1,0 +1,18 @@
+//
+//  NSNull+Error.m
+//  FetionSchool
+//
+//  Created by Bruce Pei on 12-8-1.
+//
+//
+
+#import "NSNull+Error.h"
+
+@implementation NSNull (Error)
+
+-(id)regexString {
+
+    return nil;
+}
+
+@end

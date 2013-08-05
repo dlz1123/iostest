@@ -1,0 +1,322 @@
+//
+//  NSString+Feedstring.m
+//  FetionPlus
+//
+//  Created by 晓磊 裴 on 11-11-17.
+//  Copyright (c) 2011年 Feinno Tech. All rights reserved.
+//
+
+#import "NSString+Feedstring.h"
+#import "RegexKitLite.h"
+#import "GTMNSString+HTML.h"
+//#import "ConstantDefine.h"
+
+@implementation NSString (Feedstring)
+
+-(NSString*)regexString {
+    
+    NSMutableArray *elementsArray = [[[NSMutableArray alloc] init] autorelease];
+	NSInteger index = 0;
+	while (index < self.length) {
+		NSRange searchRange = NSMakeRange(index, self.length - index);
+		NSRange startRange = [self rangeOfString:@"<a" options:NSCaseInsensitiveSearch range:searchRange];
+		if (startRange.location == NSNotFound) {
+            
+            //			currentElement.isUrl = NO;
+            
+            NSMutableString *temp = [NSMutableString string];
+            [temp appendString:[self substringWithRange:searchRange]];
+            
+            // delete a>
+            if ([temp hasPrefix:@"a>"]) {
+                
+                [temp deleteCharactersInRange:NSMakeRange(0, 2)];
+            }
+            else if ([temp hasSuffix:@"a>"]) {
+                [temp deleteCharactersInRange:NSMakeRange(temp.length-2, 2)];
+            }
+            
+			[elementsArray addObject:temp];
+            
+            FSLOG(@"searchStr:%@",[self substringWithRange:searchRange]);
+            
+			break;
+		}else {
+            
+            
+			NSRange beforeRange = NSMakeRange(searchRange.location, startRange.location - searchRange.location);
+			if (beforeRange.length) {
+                
+                //				beforeElement.isUrl = NO;
+                
+                NSMutableString *temp = [NSMutableString string];
+                [temp appendString:[self substringWithRange:beforeRange]];
+                
+                // delete a>
+                if ([temp hasPrefix:@"a>"]) {
+                    
+                    [temp deleteCharactersInRange:NSMakeRange(0, 2)];
+                }
+                else if ([temp hasSuffix:@"a>"]) {
+                    [temp deleteCharactersInRange:NSMakeRange(temp.length-2, 2)];
+                }
+                
+                [elementsArray addObject:temp];
+                
+                FSLOG(@"beforeStr: %@",[self substringWithRange:beforeRange]);
+			}
+			
+			NSRange searchRange = NSMakeRange(startRange.location , self.length - startRange.location);
+			NSRange endRange = [self rangeOfString:@"a>" options:NSCaseInsensitiveSearch range:searchRange];
+			if (endRange.location == NSNotFound) {
+                
+                //				urlElement.isUrl = YES;
+                
+				[elementsArray addObject:[self substringWithRange:searchRange]];
+                
+				break;
+			}else {
+                
+				NSRange urlRange = NSMakeRange(startRange.location, endRange.location - startRange.location + 2);
+                
+                NSString *regexstr = @"<a.*?href=['|\"]([^'\"$'\"]*)['|\"].*?>(.*?)</a>([^<.]*)";
+                
+                FSLOG(@"str: %@",self);
+                
+                [[self substringWithRange:urlRange] enumerateStringsMatchedByRegex:regexstr usingBlock:^(NSInteger captureCount,NSString * const capturedStrigs[captureCount],const NSRange capturedRanges[captureCount],volatile BOOL * const stop) {
+                    
+                    FSLOG(@"capturedstr: %@",[self substringToIndex:capturedRanges[0].location]);
+                    
+                    for (int i=0; i<captureCount; i++) {
+                        FSLOG(@"captureCount: %d,captureString: %@",i,capturedStrigs[i]);
+                        
+                    }
+                    [elementsArray addObject:capturedStrigs[2]];  
+                }];
+                
+				index = endRange.location;
+			}
+		}
+	}
+	
+    NSString *tempstr = [[[elementsArray componentsJoinedByString:@""] gtm_stringByUnescapingFromHTML] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+//    NSRange startRange = [tempstr rangeOfString:@"/n/r"];
+//    
+//	while (startRange.location!=NSNotFound) {
+//		
+//        [tempstr deleteCharactersInRange:NSMakeRange(startRange.location, startRange.length)];
+//    }
+    
+	return tempstr;
+}
+
+-(NSMutableArray *)urlStrArray {
+    
+    NSMutableArray *elementsArray = [[[NSMutableArray alloc] init] autorelease];
+	NSInteger index = 0;
+    
+    while (index < self.length) {
+		NSRange searchRange = NSMakeRange(index, self.length - index);
+		NSRange startRange = [self rangeOfString:@"<a" options:NSCaseInsensitiveSearch range:searchRange];
+		if (startRange.location == NSNotFound) {
+            
+            //			currentElement.isUrl = NO;
+            
+            NSMutableString *temp = [NSMutableString string];
+            [temp appendString:[self substringWithRange:searchRange]];
+            
+            // delete a>
+            if ([temp hasPrefix:@"a>"]) {
+                
+                [temp deleteCharactersInRange:NSMakeRange(0, 2)];
+            }
+            else if ([temp hasSuffix:@"a>"]) {
+                [temp deleteCharactersInRange:NSMakeRange(temp.length-2, 2)];
+            }
+            
+			break;
+            
+		}else {
+            
+            
+			NSRange beforeRange = NSMakeRange(searchRange.location, startRange.location - searchRange.location);
+			if (beforeRange.length) {
+                
+                //				beforeElement.isUrl = NO;
+                
+                NSMutableString *temp = [NSMutableString string];
+                [temp appendString:[self substringWithRange:beforeRange]];
+                
+                // delete a>
+                if ([temp hasPrefix:@"a>"]) {
+                    
+                    [temp deleteCharactersInRange:NSMakeRange(0, 2)];
+                }
+                else if ([temp hasSuffix:@"a>"]) {
+                    [temp deleteCharactersInRange:NSMakeRange(temp.length-2, 2)];
+                }
+			}
+			
+			NSRange searchRange = NSMakeRange(startRange.location , self.length - startRange.location);
+			NSRange endRange = [self rangeOfString:@"a>" options:NSCaseInsensitiveSearch range:searchRange];
+			if (endRange.location == NSNotFound) {
+                
+                
+				break;
+			}else {
+                
+				NSRange urlRange = NSMakeRange(startRange.location, endRange.location - startRange.location + 2);
+                
+                NSString *regexstr = @"<a.*?href=['|\"]([^'\"$'\"]*)['|\"].*?>(.*?)</a>([^<.]*)";
+                
+                FSLOG(@"str: %@",self);
+                
+                [[self substringWithRange:urlRange] enumerateStringsMatchedByRegex:regexstr usingBlock:^(NSInteger captureCount,NSString * const capturedStrigs[captureCount],const NSRange capturedRanges[captureCount],volatile BOOL * const stop) {
+                    
+                    FSLOG(@"capturedstr: %@",[self substringToIndex:capturedRanges[0].location]);
+                    
+                    
+                    [elementsArray addObject:capturedStrigs[2]];
+                    
+
+                }];
+                
+				index = endRange.location;
+			}
+		}
+	}
+
+
+    FSLOG(@"element :%@",elementsArray);
+    
+    return elementsArray;
+}
+
+- (NSString *)stringByDecodingXMLEntities {  
+    
+    NSUInteger myLength = [self length];  
+    NSUInteger ampIndex = [self rangeOfString:@"&" options:NSLiteralSearch].location;  
+    
+    // Short-circuit if there are no ampersands.  
+    if (ampIndex == NSNotFound) {  
+        return self;  
+    }  
+    // Make result string with some extra capacity.  
+    
+    NSMutableString *result = [NSMutableString stringWithCapacity:(myLength * 1.25)];  
+    
+    
+//　　 First iteration doesn't need to scan to & since we did that already, but for code simplicity's sake we'll do it again with the scanner.  
+    NSScanner *scanner = [NSScanner scannerWithString:self];  
+    [scanner setCharactersToBeSkipped:nil];  
+    NSCharacterSet *boundaryCharacterSet = [NSCharacterSet characterSetWithCharactersInString:@" \t\n\r;"];  
+    
+    do {  
+        // Scan up to the next entity or the end of the string.  
+        NSString *nonEntityString;  
+        if ([scanner scanUpToString:@"&" intoString:&nonEntityString]) {  
+            [result appendString:nonEntityString];  
+        }  
+        if ([scanner isAtEnd]) {  
+            goto finish;  
+        }  
+        // Scan either a HTML or numeric character entity reference.  
+        if ([scanner scanString:@"&" intoString:NULL])  
+            [result appendString:@"&"];  
+        else if ([scanner scanString:@"'" intoString:NULL])  
+            [result appendString:@"'"];  
+        else if ([scanner scanString:@"" intoString:NULL])  
+      [result appendString:@"\""];  
+      else if ([scanner scanString:@"<" intoString:NULL])  
+      [result appendString:@"<"];  
+      else if ([scanner scanString:@">" intoString:NULL])  
+      [result appendString:@">"];  
+      else if ([scanner scanString:@"&#" intoString:NULL]) {  
+          BOOL gotNumber;  
+          unsigned charCode;  
+          NSString *xForHex = @"";  
+          
+          // Is it hex or decimal?  
+          if ([scanner scanString:@"x" intoString:&xForHex]) {  
+              gotNumber = [scanner scanHexInt:&charCode];  
+          }  
+          else {  
+              gotNumber = [scanner scanInt:(int*)&charCode];  
+          }  
+          
+          if (gotNumber) {  
+              [result appendFormat:@"%u", charCode];  
+              
+              [scanner scanString:@";" intoString:NULL];  
+          }  
+          else {  
+              NSString *unknownEntity = @"";  
+              
+              [scanner scanUpToCharactersFromSet:boundaryCharacterSet intoString:&unknownEntity];  
+              
+              
+              [result appendFormat:@"&#%@%@", xForHex, unknownEntity];  
+              
+              //[scanner scanUpToString:@";" intoString:&unknownEntity];  
+              //[result appendFormat:@"&#%@%@;", xForHex, unknownEntity];  
+              FSLOG(@"Expected numeric character entity but got &#%@%@;", xForHex, unknownEntity);
+              
+          }  
+          
+      }  
+      else {  
+//          NSString *amp;  
+          
+//          [scanner scanString:@"&" intoString:&];      //an isolated & symbol  
+//          [result appendString:amp];  
+          
+          /* 
+           NSString *unknownEntity = @""; 
+           [scanner scanUpToString:@";" intoString:&unknownEntity]; 
+           NSString *semicolon = @""; 
+           [scanner scanString:@";" intoString:&semicolon]; 
+           [result appendFormat:@"%@%@", unknownEntity, semicolon]; 
+           NSLog(@"Unsupported XML character entity %@%@", unknownEntity, semicolon); 
+           */  
+      }  
+      
+      }  
+      while (![scanner isAtEnd]);  
+                  
+      finish:  
+return result;  
+}  
+
+-(NSString *)clearString {
+
+    NSString* cleanedStr = [[self stringByReplacingOccurrencesOfString:@"\r\n" withString:@"\n"]
+							 stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    return cleanedStr;
+}
+//--Clear duplication str, and replace it to once! -- hequn
+-(NSString *)clearDuplicateStr:(NSString*)dStr
+{
+    NSInteger startPos = [self rangeOfString:dStr].location;
+    NSInteger lenOfDStr = [dStr length];
+    NSString* tempStr;
+    if(startPos == NSNotFound)
+    {
+        tempStr = self;
+    }
+    else
+    {
+        NSString* rightStr = [self substringFromIndex:(startPos+lenOfDStr)];
+        if(startPos == 0)
+        {
+            rightStr = [self substringFromIndex:(startPos+lenOfDStr*2)];
+            tempStr = [[self substringToIndex:(startPos)] stringByAppendingString:[rightStr clearDuplicateStr:dStr]];
+        }
+        else
+            tempStr = [[self substringToIndex:(startPos + lenOfDStr)] stringByAppendingString:[rightStr clearDuplicateStr:dStr]];
+    }
+    
+    return tempStr;
+}
+
+@end

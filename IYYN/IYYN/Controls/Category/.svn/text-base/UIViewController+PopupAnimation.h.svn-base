@@ -1,0 +1,28 @@
+//
+//  UIViewController+PopupAnimation.h
+//  FetionSchool
+//
+//  Created by 裴晓磊 on 12-7-5.
+//  Copyright (c) 2012年 __MyCompanyName__. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+typedef enum {
+    PopupViewAnimationSlideBottomTop = 1,
+    PopupViewAnimationSlideMiddleTop,
+    PopupViewAnimationSlideTopMiddle,
+    PopupViewAnimationSlideTopTop,
+    PopupViewAnimationSlideTopBottom,
+    PopupViewAnimationSlideRightLeft,
+    PopupViewAnimationSlideRightRight,
+    PopupViewAnimationSlideBottomBottom,
+    PopupViewAnimationFade
+}PopupViewAnimation;
+
+@interface UIViewController (PopupAnimation)
+
+-(void)presentPopupViewController:(UIViewController *)viewController animationType:(PopupViewAnimation)animationType;
+-(void)dismissPopupViewControllerWithAnimationType:(PopupViewAnimation)animationType;
+
+@end

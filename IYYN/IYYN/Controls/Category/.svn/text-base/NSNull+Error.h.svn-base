@@ -1,0 +1,13 @@
+//
+//  NSNull+Error.h
+//  FetionSchool
+//
+//  Created by Bruce Pei on 12-8-1.
+//
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NSNull (Error)
+-(id)regexString;
+@end
